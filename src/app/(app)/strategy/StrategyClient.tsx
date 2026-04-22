@@ -138,7 +138,7 @@ export function StrategyClient() {
   }
 
   async function runAnalysis() {
-    // Simulate step-by-step progress
+    // Simulate only the early steps that don't depend on API data
     updateStepStatus("connect", "active");
     await sleep(800);
     updateStepStatus("connect", "completed");
@@ -151,20 +151,10 @@ export function StrategyClient() {
     await sleep(1000);
     updateStepStatus("classify", "completed");
 
-    // Crawl step - will be populated with real URLs after API returns
+    // Crawl step - stays "active" until API returns with real data
     updateStepStatus("crawl", "active");
-    await sleep(500);
 
-    updateStepStatus("keywords", "active");
-    await sleep(1000);
-    updateStepStatus("keywords", "completed");
-
-    updateStepStatus("analyze", "active");
-    await sleep(800);
-    updateStepStatus("analyze", "completed");
-
-    updateStepStatus("strategy", "active");
-    await sleep(600);
+    // Leave keywords, analyze, strategy as "pending" — they'll be completed after API returns
   }
 
   /**
