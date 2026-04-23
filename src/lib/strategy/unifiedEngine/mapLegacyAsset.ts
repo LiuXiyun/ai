@@ -1,14 +1,12 @@
-import type { ConsumerProfile, UnifiedAsset } from "./types";
+import type { UnifiedAsset } from "./types";
 
 /** 将 strategy-v2 的 legacy primary + 细分 surface 映射为统一资产 ID */
 export function mapLegacyToUnifiedAsset(params: {
   legacyPrimary: string;
   canonicalSurface?: string;
-  consumerProfile: ConsumerProfile;
 }): { primary_unified: UnifiedAsset; surface: string } {
   const lp = (params.legacyPrimary ?? "").trim();
   const cs = (params.canonicalSurface ?? "").trim();
-  const cp = params.consumerProfile;
 
   if (lp === "QA / FAQ Page") return { primary_unified: "qa_page", surface: cs || "qa_faq_hub" };
   if (lp === "Comparison Page") return { primary_unified: "comparison_page", surface: cs || "comparison_page" };
@@ -17,11 +15,10 @@ export function mapLegacyToUnifiedAsset(params: {
     return { primary_unified: "article", surface: cs };
   }
   if (lp === "Tool / Calculator") {
-    return { primary_unified: cp === "dhgate_commerce" ? "support_article" : "article", surface: cs || "tool_interactive" };
+    return { primary_unified: "article", surface: cs || "tool_interactive" };
   }
 
   if (lp === "Collection / Bestlist") {
-    if (cp === "dhgate_commerce") return { primary_unified: "collection_page", surface: cs || "listicle_collection" };
     return { primary_unified: "bestlist", surface: cs || "listicle_collection" };
   }
 
