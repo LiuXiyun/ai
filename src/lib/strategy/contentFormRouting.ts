@@ -67,7 +67,7 @@ export function primaryAssetToBucket(asset: string | null | undefined): ContentS
   }
 }
 
-/** 无模型细分类时，按主资产给一个保守默认（宁可 unspecified 也不要瞎猜 PDP） */
+/** 无模型细分类时，按主资产给一个保守默认 */
 export function defaultCanonicalForPrimary(primaryAsset: string): CanonicalContentSurface {
   switch ((primaryAsset ?? "").trim()) {
     case "Article / Guide":
@@ -77,7 +77,7 @@ export function defaultCanonicalForPrimary(primaryAsset: string): CanonicalConte
     case "Comparison Page":
       return "comparison_page";
     case "Product Page":
-      return "unspecified";
+      return "pdp_single_sku";
     case "QA / FAQ Page":
       return "qa_faq_hub";
     case "Tool / Calculator":
@@ -144,6 +144,10 @@ function canonicalFromGranularity(
   primaryAsset: string,
   g: ContentGranularityInput | null | undefined,
 ): CanonicalContentSurface {
+  if ((primaryAsset ?? "").trim() === "Product Page") {
+    // 口径统一：Product Page 仅允许落到单品详情（PDP）
+    return "pdp_single_sku";
+  }
   if (g?.canonicalSurface) {
     return normalizeCanonicalSurface(g.canonicalSurface, primaryAsset);
   }

@@ -151,8 +151,8 @@ export async function runLayer3AiAnalysis(params: {
     "pairWith": string[] (0-2 条：辅助形态如何配合主形态，可执行)
   },
   "contentGranularity": {
-    "canonicalSurface": "article_longform" | "listicle_collection" | "comparison_page" | "pdp_single_sku" | "plp_category_or_search" | "store_brand_hub" | "qa_faq_hub" | "tool_interactive" | "unspecified",
-    "explainForOperator": string (中文 1 句，给工程/程序化用：明确是「单品商详 / 类目列表 / 店铺馆 / 导购清单」等哪一种),
+    "canonicalSurface": "article_longform" | "listicle_collection" | "comparison_page" | "pdp_single_sku" | "qa_faq_hub" | "tool_interactive" | "unspecified",
+    "explainForOperator": string (中文 1 句，给工程/程序化用：明确是「单品商详 / 导购清单 / 对比页」等哪一种),
     "productIfApplicable": null | {
       "isSingleSkuDetail": boolean,
       "isCategoryListing": boolean,
@@ -163,7 +163,8 @@ export async function runLayer3AiAnalysis(params: {
 }
 assetFitScoring 必须 6 条全有且按 score 降序；用中文写 alignmentNote、contentFormDirective 与 systematicAnalysis。
 contentFormDirective 必须与 decision.primaryAsset 一致，禁止泛泛「做优质内容」类空话。
-当 decision.primaryAsset 为 Product Page 时：canonicalSurface 必须是 pdp_single_sku / plp_category_or_search / store_brand_hub 之一，且 productIfApplicable 三布尔里恰有一个为 true；doThis 里必须用中文写清是「单品详情」还是「多商品列表/类目」还是「店铺/品牌聚合」，禁止含糊说「商品页」。
+强约束：Product Page 仅代表「单品详情页（PDP）」；当 decision.primaryAsset 为 Product Page 时，canonicalSurface 必须为 pdp_single_sku，且 productIfApplicable 必须为 { isSingleSkuDetail: true, isCategoryListing: false, isStoreOrBrandHub: false }。
+若判断为「多商品列表/类目页/店铺聚合页」，primaryAsset 必须改为 Collection / Bestlist（不可标为 Product Page）。
 当 primary 为 Collection / Bestlist 时 canonicalSurface 一般为 listicle_collection；Article / Guide → article_longform；Comparison Page → comparison_page；QA / FAQ → qa_faq_hub；Tool → tool_interactive。`;
 
   const user = `关键词: ${params.keyword}\nlayer1:\n${jsonFacts(params.layer1)}\n\nlayer2:\n${jsonFacts(params.layer2)}`;

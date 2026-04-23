@@ -27,11 +27,8 @@ export function mapLegacyToUnifiedAsset(params: {
 
   if (lp === "Product Page") {
     if (cs === "pdp_single_sku") return { primary_unified: "product_page", surface: "pdp_single_sku" };
-    if (cs === "plp_category_or_search") return { primary_unified: "category_page", surface: "plp_category_or_search" };
-    if (cs === "store_brand_hub") return { primary_unified: "collection_page", surface: "store_brand_hub" };
-    if (cp === "dhgate_commerce")
-      return { primary_unified: "category_page", surface: cs || "plp_category_or_search" };
-    return { primary_unified: "product_page", surface: cs || "unspecified" };
+    // 口径统一：Product Page 仅映射为单品详情；列表/店铺应由 Collection / Bestlist 承接
+    return { primary_unified: "product_page", surface: "pdp_single_sku" };
   }
 
   return { primary_unified: "article", surface: "unspecified" };

@@ -268,8 +268,24 @@ async function processLayer2(keyword: string, location: string, language: string
 async function processLayer3(keyword: string, location: string, language: string, layer1Data: any, layer2Data: any) {
   const raw = (await runLayer3AiAnalysis({ keyword, layer1: layer1Data, layer2: layer2Data })) as Record<string, unknown>;
   const d = raw.decision as { primaryAsset?: string; supportAssets?: string[] } | undefined;
-  const pa = d?.primaryAsset ?? "Article / Guide";
+  const gran0 = (raw.contentGranularity as ContentGranularityInput | undefined) ?? {};
+  let pa = d?.primaryAsset ?? "Article / Guide";
   const sup = Array.isArray(d?.supportAssets) ? d!.supportAssets! : [];
+  const directive0 =
+    (raw.contentFormDirective as { doThis?: string } | undefined)?.doThis ?? "";
+  const saysListIntent = /多商品|商品列表|类目|分类页|店铺聚合|PLP|列表页/i.test(directive0);
+
+  // 口径修正：Product Page 仅代表单品详情；列表/类目归 Collection / Bestlist
+  if (pa === "Product Page" && (gran0.canonicalSurface === "plp_category_or_search" || gran0.canonicalSurface === "store_brand_hub" || saysListIntent)) {
+    pa = "Collection / Bestlist";
+    raw.decision = { ...(d ?? {}), primaryAsset: pa };
+    raw.contentGranularity = {
+      canonicalSurface: "listicle_collection",
+      explainForOperator: "已口径修正：多商品列表/类目承接归入 Collection / Bestlist；Product Page 仅用于单品详情（PDP）。",
+      productIfApplicable: null,
+    };
+  }
+
   if (!raw.contentFormDirective || typeof raw.contentFormDirective !== "object") {
     raw.contentFormDirective = {
       headline: `你要做的内容形态：主推荐为「${pa}」（模型未返回 headline 时的兜底）`,
@@ -283,11 +299,11 @@ async function processLayer3(keyword: string, location: string, language: string
       canonicalSurface: defaultCanonicalForPrimary(pa),
       explainForOperator:
         pa === "Product Page"
-          ? "未返回细分：「Product Page」可能是类目列表、单品商详或店铺馆，请结合 TOP 结果 URL 再判。"
+          ? "未返回细分：按统一口径回退到单品详情页（pdp_single_sku）。"
           : "未返回 contentGranularity，已按主资产给出保守默认。",
       productIfApplicable:
         pa === "Product Page"
-          ? { isSingleSkuDetail: false, isCategoryListing: false, isStoreOrBrandHub: false }
+          ? { isSingleSkuDetail: true, isCategoryListing: false, isStoreOrBrandHub: false }
           : null,
     };
   }
