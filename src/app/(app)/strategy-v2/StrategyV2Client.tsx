@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 type AnalysisLayer = {
@@ -478,6 +478,26 @@ export function StrategyV2Client() {
   const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
   const [showJson, setShowJson] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  /** 分析进行中：按顺序只让一步显示转圈（后台仍是一次跑完） */
+  const loadStepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loadPhaseRef = useRef(0);
+
+  function clearLoadStepAnimation() {
+    if (loadStepIntervalRef.current) {
+      clearInterval(loadStepIntervalRef.current);
+      loadStepIntervalRef.current = null;
+    }
+  }
+
+  function applyLoadingPhase(phase: number) {
+    setLayers((p) =>
+      p.map((l, i) => ({
+        ...l,
+        status: (i === phase ? "active" : "pending") as AnalysisLayer["status"],
+        data: {},
+      })),
+    );
+  }
   const locationOptions = [
     { value: "2156", label: "中国" }, { value: "2840", label: "美国" },
     { value: "2826", label: "英国" }, { value: "2392", label: "日本" },
@@ -493,9 +513,16 @@ export function StrategyV2Client() {
     const kw = keyword.trim();
     setLoading(true);
     setError(null);
-    setLayers((p) => p.map((l) => ({ ...l, status: "active" as const, data: {} })));
+    clearLoadStepAnimation();
+    loadPhaseRef.current = 0;
     setExpandedLayers({});
     setShowJson({});
+    applyLoadingPhase(0);
+    loadStepIntervalRef.current = setInterval(() => {
+      loadPhaseRef.current = Math.min(loadPhaseRef.current + 1, 4);
+      applyLoadingPhase(loadPhaseRef.current);
+    }, 650);
+
     try {
       const res = await fetch("/api/strategy-v2/analyze", {
         method: "POST",
@@ -512,6 +539,7 @@ export function StrategyV2Client() {
       };
       if (!json.layers) throw new Error("返回数据格式错误");
       const ids = ["layer1", "layer2", "layer3", "layer4", "layer5"] as const;
+      clearLoadStepAnimation();
       setLayers((p) =>
         p.map((l) => {
           const raw = json.layers?.[l.id] ?? {};
@@ -521,9 +549,11 @@ export function StrategyV2Client() {
       );
       setExpandedLayers(Object.fromEntries(ids.map((id) => [id, true])));
     } catch (e) {
+      clearLoadStepAnimation();
       setError(e instanceof Error ? e.message : "未知错误");
       setLayers((p) => p.map((l) => (l.status === "active" ? { ...l, status: "error" as const, data: {} } : l)));
     } finally {
+      clearLoadStepAnimation();
       setLoading(false);
     }
   }
@@ -532,7 +562,7 @@ export function StrategyV2Client() {
     <main className="flex-1 p-6">
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="text-sm font-semibold text-zinc-900">分层策略分析（给写稿流水线用）</div>
-        <div className="mt-1 text-xs text-zinc-500">从「看懂 SERP」到「可复制 JSON」五步走完；点一次分析会在后台一次性跑完（只请求一轮外部数据，更快更省）。每层都有：关键发现 → 对下一步的影响 → 建议</div>
+        <div className="mt-1 text-xs text-zinc-500">从「看懂 SERP」到「可复制 JSON」五步走完；点一次分析时左侧会依次高亮各步（便于跟进度），后台仍是一次跑完、只请求一轮外部数据。每层都有：关键发现 → 对下一步的影响 → 建议</div>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end">
           <div className="flex-1 space-y-2">
             <label className="text-sm text-zinc-700">关键词</label>
