@@ -14,7 +14,7 @@ function getAuthHeader() {
   return `Basic ${cred}`;
 }
 
-/** Layer1：把 SERP 数据压缩成「人话总结」+「特色板块总结」 */
+/** Layer1：把 SERP 数据压缩成「SERP 总结」+「特色板块总结」 */
 function buildSerpNarrativeSummaries(
   keyword: string,
   organicResults: Array<{ rank: number; title: string; domain: string; description?: string }>,

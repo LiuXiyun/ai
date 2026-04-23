@@ -31,7 +31,7 @@ function Layer1Report({ data }: { data: Record<string, unknown> }) {
     <div className="space-y-6">
       {serpSummary && (
         <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white px-4 py-4">
-          <div className="text-sm font-semibold text-indigo-950">SERP 总结（人话版）</div>
+          <div className="text-sm font-semibold text-indigo-950">SERP 总结</div>
           {serpSummary.headline && <div className="mt-2 text-sm font-medium text-indigo-900">{serpSummary.headline}</div>}
           {serpSummary.paragraphs && (
             <div className="mt-2 space-y-2 text-sm leading-relaxed text-indigo-900/90">
@@ -469,7 +469,7 @@ export function StrategyV2Client() {
   const [language, setLanguage] = useState("zh-cn");
   const [loading, setLoading] = useState(false);
   const [layers, setLayers] = useState<AnalysisLayer[]>([
-    { id: "layer1", name: "第1步 · 抓取并读懂搜索结果", description: "看 Google 这一页真实长什么样：前几名是谁、有没有购物/PAA 等特色块，并输出人话总结", status: "pending", data: {} },
+    { id: "layer1", name: "第1步 · 抓取并读懂搜索结果", description: "看 Google 这一页真实长什么样：前几名是谁、有没有购物/PAA 等特色块。", status: "pending", data: {} },
     { id: "layer2", name: "第2步 · 判断值不值得做", description: "识别大家是什么页面类型、用户意图是否统一，并给出可行性评分与风险提示", status: "pending", data: {} },
     { id: "layer3", name: "第3步 · 选对你要做的页面形态", description: "把「文章 / 清单 / 产品页 / 对比页 / 问答页」等形态打分，选出最适合的主形态", status: "pending", data: {} },
     { id: "layer4", name: "第4步 · 产出打法与内容大纲", description: "把主形态落成：必写模块、章节结构、SEO 要点，并给出可执行打法（缺什么/风险/你能做什么）", status: "pending", data: {} },
