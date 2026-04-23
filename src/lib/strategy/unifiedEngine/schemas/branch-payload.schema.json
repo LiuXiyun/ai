@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/branch-payload.schema.json",
+  "title": "branch_payload",
+  "type": "object",
+  "additionalProperties": true,
+  "description": "分资产控制面；具体键随 primary_unified 变化，field_roles 为稳定契约",
+  "properties": {
+    "page_goal": { "type": "string" },
+    "must_blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string" },
+          "intent_tag": { "type": "string" },
+          "min_words": { "type": "number" },
+          "max_words": { "type": "number" },
+          "required_entities": { "type": "array", "items": { "type": "string" } },
+          "text_seed": { "type": "string" }
+        }
+      }
+    },
+    "layout_control": { "type": "object", "additionalProperties": true },
+    "intro_rule": { "type": "object", "additionalProperties": true },
+    "faq_targets": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "seo": { "type": "object", "additionalProperties": true },
+    "conversion_blocks": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "friction_points": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "field_roles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

@@ -617,6 +617,11 @@ function Layer5Report({ data }: { data: Record<string, unknown> }) {
   const playbook = data.playbook as Playbook | undefined;
   const serpSummary = data.serpSummary as SerpSummaryBlock | undefined;
   const finalBundleJson = typeof data.finalBundleJson === "string" ? data.finalBundleJson : "";
+  const finalBundle = data.finalBundle as { unified_engine?: Record<string, unknown> } | undefined;
+  const ue = finalBundle?.unified_engine as {
+    unified_routing?: { primary_unified?: string; surface?: string };
+    viability_engine?: { action?: string; score?: number };
+  } | undefined;
 
   async function copyFinal() {
     if (!finalBundleJson) return;
@@ -637,7 +642,7 @@ function Layer5Report({ data }: { data: Record<string, unknown> }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="text-sm font-semibold text-sky-950">最终交付：完整 JSON</div>
-              <div className="mt-1 text-xs text-sky-800">已包含：SERP 总结、特色板块、`contentFormDirective`、`contentGranularity`（PDP/PLP 等细分）、`contentFormRouting`、打法手册、controlSignals 等</div>
+              <div className="mt-1 text-xs text-sky-800">已包含：SERP 总结、特色板块、`contentFormDirective`、`contentGranularity`（PDP/PLP 等细分）、`contentFormRouting`、打法手册、controlSignals、<strong className="text-sky-900">unified_engine</strong>（规则引擎拼装：可行性 / 竞品抽样 / 关键词桶 / 分资产控制面）等</div>
             </div>
             <button type="button" onClick={copyFinal}
               className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700">
@@ -645,6 +650,19 @@ function Layer5Report({ data }: { data: Record<string, unknown> }) {
             </button>
           </div>
           {copyErr && <div className="mt-2 text-xs text-red-600">{copyErr}</div>}
+        </div>
+      )}
+      {ue && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950">
+          <div className="font-semibold">统一引擎（unified_engine）快照</div>
+          <div className="mt-1 text-xs text-emerald-900/95">
+            统一资产 <strong>{ue.unified_routing?.primary_unified ?? "—"}</strong>
+            {" · "}
+            surface {ue.unified_routing?.surface ?? "—"}
+            {" · "}
+            可行性 <strong>{ue.viability_engine?.action ?? "—"}</strong>
+            {typeof ue.viability_engine?.score === "number" ? `（${ue.viability_engine.score} 分）` : ""}
+          </div>
         </div>
       )}
       {(serpSummary?.headline || playbook?.angle) && (
@@ -737,6 +755,7 @@ export function StrategyV2Client() {
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("2156");
   const [language, setLanguage] = useState("zh-cn");
+  const [consumerProfile, setConsumerProfile] = useState<"smart_content" | "dhgate_commerce">("smart_content");
   const [loading, setLoading] = useState(false);
   const [layers, setLayers] = useState<AnalysisLayer[]>([
     { id: "layer1", name: "第1步 · 抓取事实 + AI 读懂 SERP", description: "程序只负责拉 SERP 与落地页结构数据；本步结论（总结、特色块解读、竞品写法）由大模型生成。", status: "pending", data: {} },
@@ -823,6 +842,7 @@ export function StrategyV2Client() {
             keyword: kw,
             location,
             language,
+            consumer_profile: consumerProfile,
             layer: stepId,
             ...(previousLayers && Object.keys(previousLayers).length > 0 ? { previousLayers } : {}),
           }),
@@ -885,6 +905,15 @@ export function StrategyV2Client() {
               value={language} onChange={(e) => setLanguage(e.target.value)}>
               {languageOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+          </div>
+          <div className="space-y-2 md:min-w-[11rem]">
+            <label className="text-sm text-zinc-700">消费画像</label>
+            <select className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+              value={consumerProfile} onChange={(e) => setConsumerProfile(e.target.value as "smart_content" | "dhgate_commerce")}>
+              <option value="smart_content">通用内容站</option>
+              <option value="dhgate_commerce">DHgate 电商</option>
+            </select>
+            <div className="text-[11px] leading-snug text-zinc-500">仅影响最后一步 JSON 里的 <code className="rounded bg-zinc-100 px-0.5">unified_engine</code> 路由与分支默认值。</div>
           </div>
           <Button onClick={onAnalyze} disabled={!keyword.trim() || loading}>{loading ? "分析中..." : "开始分析"}</Button>
         </div>

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/unified-engine-root.schema.json",
+  "title": "unified_engine",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "consumer_profile",
+    "keyword",
+    "legacy",
+    "unified_routing",
+    "viability_engine",
+    "competitor_engine",
+    "keyword_buckets",
+    "branch_payload"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "consumer_profile": {
+      "type": "string",
+      "enum": ["smart_content", "dhgate_commerce"]
+    },
+    "keyword": { "type": "string", "minLength": 1 },
+    "legacy": {
+      "type": "object",
+      "required": ["primary_asset", "canonical_surface"],
+      "properties": {
+        "primary_asset": { "type": "string" },
+        "canonical_surface": { "type": ["string", "null"] }
+      }
+    },
+    "unified_routing": {
+      "type": "object",
+      "required": ["primary_unified", "surface", "content_form_routing_snapshot"],
+      "properties": {
+        "primary_unified": { "type": "string" },
+        "surface": { "type": "string" },
+        "content_form_routing_snapshot": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "viability_engine": {
+      "type": "object",
+      "required": ["action", "score", "reason_codes", "gates"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["proceed", "expand", "skip", "proceed_with_low_evidence"]
+        },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "reason_codes": { "type": "array", "items": { "type": "string" } },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "pass", "detail"],
+            "properties": {
+              "id": { "type": "string" },
+              "pass": { "type": "boolean" },
+              "detail": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "legacy_viability_gate": { "type": ["object", "null"], "additionalProperties": true }
+      }
+    },
+    "competitor_engine": {
+      "type": "object",
+      "required": ["strategy", "n", "selected_ranks", "filters_applied", "groups"],
+      "properties": {
+        "strategy": { "type": "string" },
+        "n": { "type": "integer", "minimum": 1 },
+        "selected_ranks": { "type": "array", "items": { "type": "integer" } },
+        "filters_applied": { "type": "array", "items": { "type": "string" } },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "member_ranks", "pattern"],
+            "properties": {
+              "id": { "type": "string" },
+              "member_ranks": { "type": "array", "items": { "type": "integer" } },
+              "pattern": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "keyword_buckets": {
+      "type": "object",
+      "required": ["same_page_must", "same_page_optional", "support_page", "exclude"],
+      "properties": {
+        "same_page_must": { "type": "array", "items": { "type": "string" } },
+        "same_page_optional": { "type": "array", "items": { "type": "string" } },
+        "support_page": { "type": "array", "items": { "type": "string" } },
+        "exclude": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "branch_payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "按 primary_unified 分支的结构化控制面；含 field_roles 映射"
+    },
+    "meta": { "type": "object", "additionalProperties": true }
+  }
+}

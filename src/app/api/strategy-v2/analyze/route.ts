@@ -19,6 +19,11 @@ import {
   defaultCanonicalForPrimary,
   type ContentGranularityInput,
 } from "@/lib/strategy/contentFormRouting";
+import {
+  buildUnifiedEngineOutput,
+  normalizeConsumerProfile,
+  type ConsumerProfile,
+} from "@/lib/strategy/unifiedEngine";
 
 /** 对自然结果前 N 名抓取落地页 HTML，抽取结构信号（与老版 /strategy 一致为 5 条，顺序执行避免并发风暴） */
 const ORGANIC_CONTENT_FETCH_TOP = 5;
@@ -310,7 +315,16 @@ async function processLayer4(keyword: string, location: string, language: string
 /**
  * Layer 5: 控制信号生成层（全程由大模型根据前四层结论与事实生成）
  */
-async function processLayer5(keyword: string, location: string, language: string, layer1Data: any, layer2Data: any, layer3Data: any, layer4Data: any) {
+async function processLayer5(
+  keyword: string,
+  location: string,
+  language: string,
+  layer1Data: any,
+  layer2Data: any,
+  layer3Data: any,
+  layer4Data: any,
+  consumerProfile: ConsumerProfile,
+) {
   const primaryAsset = layer3Data?.decision?.primaryAsset ?? "Article / Guide";
   const viabilityGate = layer2Data?.viabilityGate ?? {};
 
@@ -342,6 +356,16 @@ async function processLayer5(keyword: string, location: string, language: string
     (layer3Data?.contentFormRouting as Record<string, unknown> | undefined) ??
     buildContentFormRouting(primaryAsset, contentGranularity as ContentGranularityInput | null);
 
+  const unified_engine = buildUnifiedEngineOutput({
+    keyword,
+    consumerProfile,
+    layer1: layer1Data as Record<string, unknown>,
+    layer2: layer2Data as Record<string, unknown>,
+    layer3: layer3Data as Record<string, unknown>,
+    layer4: layer4Data as Record<string, unknown>,
+    controlSignals: finalStrategy,
+  });
+
   const finalBundle = {
     meta: {
       keyword,
@@ -350,6 +374,7 @@ async function processLayer5(keyword: string, location: string, language: string
       generatedAt: new Date().toISOString(),
       queryPattern: layer2Data?.queryPattern ?? null,
       primaryAsset,
+      consumerProfile,
     },
     serpSummary,
     serpFeaturesSummary,
@@ -360,6 +385,7 @@ async function processLayer5(keyword: string, location: string, language: string
     playbook,
     controlSignals: finalStrategy,
     viabilityGate,
+    unified_engine,
   };
 
   return {
@@ -378,12 +404,17 @@ async function processLayer5(keyword: string, location: string, language: string
 }
 
 /** 单次编排：只打一次 Layer1（SERP + 相关词），其后全程内存传递，不重复请求 DataForSEO */
-async function runStrategyV2Pipeline(keyword: string, location: string, language: string) {
+async function runStrategyV2Pipeline(
+  keyword: string,
+  location: string,
+  language: string,
+  consumerProfile: ConsumerProfile = "smart_content",
+) {
   const l1 = await processLayer1(keyword, location, language);
   const l2 = await processLayer2(keyword, location, language, l1);
   const l3 = await processLayer3(keyword, location, language, l1, l2);
   const l4 = await processLayer4(keyword, location, language, l1, l2, l3);
-  const l5 = await processLayer5(keyword, location, language, l1, l2, l3, l4);
+  const l5 = await processLayer5(keyword, location, language, l1, l2, l3, l4, consumerProfile);
   return { layer1: l1, layer2: l2, layer3: l3, layer4: l4, layer5: l5 };
 }
 
@@ -397,13 +428,15 @@ type PreviousLayersPayload = {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { keyword, location, language, layer, previousLayers } = body as {
+    const { keyword, location, language, layer, previousLayers, consumer_profile } = body as {
       keyword: string;
       location?: string;
       language?: string;
       layer?: string;
       /** 与「渐进式 UI」配合：请求 layer2+ 时传入已算好的前几层，避免重复打 DataForSEO / 重复抓落地页 */
       previousLayers?: PreviousLayersPayload;
+      /** 影响 unified_engine 中 legacy→unified 映射与分支 payload（如 DHgate 集合页） */
+      consumer_profile?: unknown;
     };
 
     if (!keyword) {
@@ -423,9 +456,10 @@ export async function POST(req: NextRequest) {
     const loc = location ?? "2156";
     const lang = language ?? "zh-cn";
     const kw = keyword.trim();
+    const consumerProfile = normalizeConsumerProfile(consumer_profile);
 
     if (layer === "all") {
-      const layers = await runStrategyV2Pipeline(kw, loc, lang);
+      const layers = await runStrategyV2Pipeline(kw, loc, lang, consumerProfile);
       return NextResponse.json({ mode: "all" as const, layers });
     }
 
@@ -460,7 +494,7 @@ export async function POST(req: NextRequest) {
         const l2 = pl.layer2 ?? (await processLayer2(kw, loc, lang, l1));
         const l3 = pl.layer3 ?? (await processLayer3(kw, loc, lang, l1, l2));
         const l4 = pl.layer4 ?? (await processLayer4(kw, loc, lang, l1, l2, l3));
-        data = await processLayer5(kw, loc, lang, l1, l2, l3, l4);
+        data = await processLayer5(kw, loc, lang, l1, l2, l3, l4, consumerProfile);
         break;
       }
       default:
