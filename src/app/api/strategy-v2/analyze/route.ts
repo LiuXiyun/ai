@@ -828,6 +828,16 @@ PAA问题：${paaQuestions.slice(0, 5).join(", ")}
   };
 }
 
+/** 单次编排：只打一次 Layer1（SERP + 相关词），其后全程内存传递，不重复请求 DataForSEO */
+async function runStrategyV2Pipeline(keyword: string, location: string, language: string) {
+  const l1 = await processLayer1(keyword, location, language);
+  const l2 = await processLayer2(keyword, location, language, l1);
+  const l3 = await processLayer3(keyword, location, language, l1, l2);
+  const l4 = await processLayer4(keyword, location, language, l1, l2, l3);
+  const l5 = await processLayer5(keyword, location, language, l1, l2, l3, l4);
+  return { layer1: l1, layer2: l2, layer3: l3, layer4: l4, layer5: l5 };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -844,40 +854,43 @@ export async function POST(req: NextRequest) {
 
     const loc = location ?? "2156";
     const lang = language ?? "zh-cn";
+    const kw = keyword.trim();
 
-    // Each layer processes independently
-    // In production, you'd pass accumulated data between layers
-    // For now, each layer re-fetches what it needs from previous layers
+    if (layer === "all") {
+      const layers = await runStrategyV2Pipeline(kw, loc, lang);
+      return NextResponse.json({ mode: "all" as const, layers });
+    }
+
     let data: any;
 
     switch (layer) {
       case "layer1":
-        data = await processLayer1(keyword, loc, lang);
+        data = await processLayer1(kw, loc, lang);
         break;
       case "layer2": {
-        const l1 = await processLayer1(keyword, loc, lang);
-        data = await processLayer2(keyword, loc, lang, l1);
+        const l1 = await processLayer1(kw, loc, lang);
+        data = await processLayer2(kw, loc, lang, l1);
         break;
       }
       case "layer3": {
-        const l1 = await processLayer1(keyword, loc, lang);
-        const l2 = await processLayer2(keyword, loc, lang, l1);
-        data = await processLayer3(keyword, loc, lang, l1, l2);
+        const l1 = await processLayer1(kw, loc, lang);
+        const l2 = await processLayer2(kw, loc, lang, l1);
+        data = await processLayer3(kw, loc, lang, l1, l2);
         break;
       }
       case "layer4": {
-        const l1 = await processLayer1(keyword, loc, lang);
-        const l2 = await processLayer2(keyword, loc, lang, l1);
-        const l3 = await processLayer3(keyword, loc, lang, l1, l2);
-        data = await processLayer4(keyword, loc, lang, l1, l2, l3);
+        const l1 = await processLayer1(kw, loc, lang);
+        const l2 = await processLayer2(kw, loc, lang, l1);
+        const l3 = await processLayer3(kw, loc, lang, l1, l2);
+        data = await processLayer4(kw, loc, lang, l1, l2, l3);
         break;
       }
       case "layer5": {
-        const l1 = await processLayer1(keyword, loc, lang);
-        const l2 = await processLayer2(keyword, loc, lang, l1);
-        const l3 = await processLayer3(keyword, loc, lang, l1, l2);
-        const l4 = await processLayer4(keyword, loc, lang, l1, l2, l3);
-        data = await processLayer5(keyword, loc, lang, l1, l2, l3, l4);
+        const l1 = await processLayer1(kw, loc, lang);
+        const l2 = await processLayer2(kw, loc, lang, l1);
+        const l3 = await processLayer3(kw, loc, lang, l1, l2);
+        const l4 = await processLayer4(kw, loc, lang, l1, l2, l3);
+        data = await processLayer5(kw, loc, lang, l1, l2, l3, l4);
         break;
       }
       default:

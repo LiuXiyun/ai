@@ -123,7 +123,9 @@ cp .env.example .env
 #### 分层策略（V2）
 
 - **POST** `/api/strategy-v2/analyze`
-- **请求 JSON**：`keyword`（必填）、`location`、`language`、`layer`（`layer1` … `layer5`）
+- **请求 JSON**：`keyword`（必填）、`location`、`language`、`layer`
+  - **`layer: "all"`（推荐）**：服务端**单次编排**跑完五步，只拉取 **一轮** SERP + 相关词，返回 `{ "mode": "all", "layers": { "layer1": …, "layer2": …, … } }`（页面默认走这条）。
+  - **`layer`: `layer1` … `layer5`**：仅跑单层（仍会按该层逻辑拉数据；调试用）。
 - **Layer5 返回**：除 `finalStrategy` 外，还有 `finalBundle` / `finalBundleJson`：**已合并 SERP 人话总结、特色板块总结、打法手册（缺什么/风险/你能做什么）、以及 `controlSignals`**，便于整条粘贴到内容生成流程。
 
 ### 页面类型分类说明

@@ -490,28 +490,39 @@ export function StrategyV2Client() {
 
   async function onAnalyze() {
     if (!keyword.trim()) return;
+    const kw = keyword.trim();
     setLoading(true);
     setError(null);
-    setLayers((p) => p.map((l) => ({ ...l, status: "pending" as const, data: {} })));
+    setLayers((p) => p.map((l) => ({ ...l, status: "active" as const, data: {} })));
     setExpandedLayers({});
     setShowJson({});
     try {
-      for (const layer of ["layer1", "layer2", "layer3", "layer4", "layer5"]) {
-        setLayers((p) => p.map((l) => l.id === layer ? { ...l, status: "active" as const } : l));
-        const res = await fetch("/api/strategy-v2/analyze", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ keyword: keyword.trim(), location, language, layer }),
-        });
-        if (!res.ok) { const json = await res.json(); throw new Error(json.error || `${layer} 失败`); }
-        const json = await res.json();
-        const enrichedData = layer === "layer1" ? { ...json.data, _keyword: keyword.trim() } : json.data;
-        setLayers((p) => p.map((l) => l.id === layer ? { ...l, status: "completed" as const, data: enrichedData ?? {} } : l));
-        setExpandedLayers((p) => ({ ...p, [layer]: true }));
+      const res = await fetch("/api/strategy-v2/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ keyword: kw, location, language, layer: "all" }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { error?: string }).error || "分析失败");
       }
+      const json = (await res.json()) as {
+        mode?: string;
+        layers?: Record<string, Record<string, unknown>>;
+      };
+      if (!json.layers) throw new Error("返回数据格式错误");
+      const ids = ["layer1", "layer2", "layer3", "layer4", "layer5"] as const;
+      setLayers((p) =>
+        p.map((l) => {
+          const raw = json.layers?.[l.id] ?? {};
+          const data = l.id === "layer1" ? { ...raw, _keyword: kw } : raw;
+          return { ...l, status: "completed" as const, data };
+        }),
+      );
+      setExpandedLayers(Object.fromEntries(ids.map((id) => [id, true])));
     } catch (e) {
       setError(e instanceof Error ? e.message : "未知错误");
-      setLayers((p) => p.map((l) => l.status === "active" ? { ...l, status: "error" as const } : l));
+      setLayers((p) => p.map((l) => (l.status === "active" ? { ...l, status: "error" as const, data: {} } : l)));
     } finally {
       setLoading(false);
     }
@@ -521,7 +532,7 @@ export function StrategyV2Client() {
     <main className="flex-1 p-6">
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="text-sm font-semibold text-zinc-900">分层策略分析（给写稿流水线用）</div>
-        <div className="mt-1 text-xs text-zinc-500">从「看懂 SERP」到「可复制 JSON」五步走完；每层都有：关键发现 → 对下一步的影响 → 建议</div>
+        <div className="mt-1 text-xs text-zinc-500">从「看懂 SERP」到「可复制 JSON」五步走完；点一次分析会在后台一次性跑完（只请求一轮外部数据，更快更省）。每层都有：关键发现 → 对下一步的影响 → 建议</div>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end">
           <div className="flex-1 space-y-2">
             <label className="text-sm text-zinc-700">关键词</label>
