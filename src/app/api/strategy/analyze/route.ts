@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fetchPageContentSummary } from "@/lib/strategy/pageContentSummary";
 
 const DATAFORSEO_SERP_URL =
   "https://api.dataforseo.com/v3/serp/google/organic/live/regular";
@@ -203,87 +204,6 @@ function assessCompetitionLevel(
   if (strongCount >= 5) return "强";
   if (strongCount >= 3) return "中等";
   return "弱";
-}
-
-/**
- * Fetch a webpage and extract key content metrics for competitor analysis
- * Only extracts: word count, headings (H1-H3), meta description, image count, FAQ/table/video presence
- */
-async function fetchPageContentSummary(url: string): Promise<{
-  wordCount: number;
-  headings: string[];
-  metaDescription: string;
-  imageCount: number;
-  hasFAQ: boolean;
-  hasTable: boolean;
-  hasVideo: boolean;
-}> {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
-    // Timeout after 5 seconds
-    signal: AbortSignal.timeout(5000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const html = await response.text();
-
-  // Extract meta description
-  const metaDescMatch = html.match(
-    /<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i,
-  );
-  const metaDescription = metaDescMatch?.[1] ?? "";
-
-  // Extract headings (H1-H3)
-  const headingRegex = /<h[1-3][^>]*>(.*?)<\/h[1-3]>/gi;
-  const headings: string[] = [];
-  let match;
-  while ((match = headingRegex.exec(html)) !== null) {
-    // Strip HTML tags from heading content
-    const text = match[1].replace(/<[^>]*>/g, "").trim();
-    if (text) {
-      headings.push(text);
-    }
-  }
-
-  // Count images
-  const imageMatches = html.match(/<img[^>]*>/gi);
-  const imageCount = imageMatches?.length ?? 0;
-
-  // Check for FAQ section
-  const hasFAQ =
-    /faq|frequently asked question|常见问题|常见问题解答/i.test(html);
-
-  // Check for tables
-  const hasTable = /<table/i.test(html);
-
-  // Check for videos
-  const hasVideo =
-    /<iframe[^>]*(youtube|vimeo)|<video|<source[^>]*type=["']video/i.test(html);
-
-  // Estimate word count (rough: count text content, strip HTML)
-  const textContent = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
-
-  return {
-    wordCount,
-    headings: headings.slice(0, 20), // Limit to top 20 headings
-    metaDescription,
-    imageCount,
-    hasFAQ,
-    hasTable,
-    hasVideo,
-  };
 }
 
 export async function POST(req: NextRequest) {

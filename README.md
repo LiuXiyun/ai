@@ -56,7 +56,7 @@ npm run dev
 - `/publish`：选择内容 → 选择平台 → 发布（MVP 先做"记录发布状态"）
 - `/analytics`：曝光统计（MVP 先模拟；后续可接真实监控）
 - `/strategy`：竞争策略分析 → 输入关键词 → Google SERP 分析 → 页面策略建议
-- `/strategy-v2`：**分层策略分析（推荐）** → 五步流水线：读懂 SERP → 评估可行性 → 选页面形态 → 产出打法大纲 → **一键复制「SERP 总结 + 特色板块 + 打法手册 + 控制指令」完整 JSON**（给下游内容生成当输入）
+- `/strategy-v2`：**分层策略分析（推荐）** → 先拉 **DataForSEO SERP** 并对 **TOP 5 自然结果** 抓取落地页 HTML（仅抽取结构事实）；**第 1～5 步的结论与策略文字全部由 OpenAI 按层生成（JSON）**，不再用站内规则引擎拼策略。需配置 **`OPENAI_API_KEY`**（可选 **`OPENAI_STRATEGY_MODEL`** 覆盖默认 `gpt-4.1-mini`）。最后可 **一键复制完整 JSON** 给下游写稿当输入。
 
 ## 数据模型（MVP）
 
@@ -76,7 +76,8 @@ cp .env.example .env
 
 字段说明：
 
-- `OPENAI_API_KEY`：用于调用 OpenAI（不填则 `/generator` 使用模拟内容；`/chat` 会提示你先配置）
+- `OPENAI_API_KEY`：用于调用 OpenAI（不填则 `/generator` 使用模拟内容；`/chat` 会提示你先配置；**`/strategy-v2` 与 `/api/strategy-v2/analyze` 必填**，否则接口返回 400）
+- `OPENAI_STRATEGY_MODEL`（可选）：覆盖 strategy-v2 使用的聊天模型，默认 `gpt-4.1-mini`
 - `DATABASE_URL`：Prisma 数据库连接（MVP 默认 SQLite）
 - `DATAFORSEO_CRED`：DataForSEO API 认证凭据（base64 编码的 login:password，用于竞争策略分析）
 
@@ -123,10 +124,23 @@ cp .env.example .env
 #### 分层策略（V2）
 
 - **POST** `/api/strategy-v2/analyze`
+- **前置条件**：必须配置 **`OPENAI_API_KEY`**。未配置时返回 **400** 与说明文案（不做规则降级策略）。
 - **请求 JSON**：`keyword`（必填）、`location`、`language`、`layer`
-  - **`layer: "all"`（推荐）**：服务端**单次编排**跑完五步，只拉取 **一轮** SERP + 相关词，返回 `{ "mode": "all", "layers": { "layer1": …, "layer2": …, … } }`（页面默认走这条）。
-  - **`layer`: `layer1` … `layer5`**：仅跑单层（仍会按该层逻辑拉数据；调试用）。
-- **Layer5 返回**：除 `finalStrategy` 外，还有 `finalBundle` / `finalBundleJson`：**已合并 SERP 总结、特色板块总结、打法手册（缺什么/风险/你能做什么）、以及 `controlSignals`**，便于整条粘贴到内容生成流程。
+  - **`layer: "all"`**：服务端**单次**跑完五步，返回 `{ "mode": "all", "layers": { … } }`（适合脚本一次拿齐；**不**用于页面渐进展示）。
+  - **`layer`: `layer1` … `layer5`**：只跑该层。页面默认用 **五步串行**：先 `layer1`，再带 **`previousLayers`**（已算好的 `layer1` / `layer1+2` …）请求 `layer2`…`layer5`，这样 **UI 可在每步返回后立即打勾**，且**不会重复** DataForSEO / 落地页抓取。
+  - **`previousLayers`**（可选）：`{ layer1?, layer2?, layer3?, layer4? }`。请求 `layer3` 时应至少带 `layer1`+`layer2`（或都不带则服务端从头算，会重复拉数）。
+- **Layer5 返回**：`finalBundle` / `finalBundleJson` 合并 SERP 总结、特色板块、`competitorContentInsights`、**`contentFormDirective`（第 3 步明确：你要做什么样的内容形态）**、**`contentFormRouting`（机器可读：形态桶 + 布尔旗标，便于你方 `if/switch` 选模板）**、第 4 步 `playbook`、`controlSignals`（第 5 步大模型输出）。**客观计数**（如平均标题长度、抓取成功条数）仍由程序从原始结果计算后写回，不属于「策略结论」。部分落地页 403/超时属正常现象，模型会在解读中说明。
+
+##### 程序化匹配「列表 / 长文 / 对比…」
+
+- **HTTP JSON**：读 `finalBundle.contentFormRouting`（Layer3 里也有同名字段）。  
+  - `contentShapeBucket`：`article_longform` | `list_ranking` | `comparison_matrix` | `product_sku` | `qa_snippets` | `tool_interactive` | `unknown`  
+  - `flags`：`preferListBlocks`、`preferLongNarrative`、`preferSkuModules`、`preferFaqShortAnswer`、`preferEmbeddedTool`（可直接用于路由生成器）
+- **同仓库 TS**：`import { primaryAssetToBucket, buildContentFormRouting } from "@/lib/strategy/contentFormRouting"`，对任意 `primaryAsset` 字符串可本地复算，与接口字段一致。
+
+`primaryAsset`（API 枚举）→ `contentShapeBucket` 对照示例：`Collection / Bestlist` → `list_ranking`；`Article / Guide` → `article_longform`；`Comparison Page` → `comparison_matrix`；`Product Page` → `product_sku`；`QA / FAQ Page` → `qa_snippets`；`Tool / Calculator` → `tool_interactive`。
+
+更细一层：读 **`contentFormRouting.canonicalSurface`**（来自第 3 步 `contentGranularity`，并写入 `finalBundle`）。`Product Page` 粗桶不变时，细分为例如 `pdp_single_sku`（单品商详）、`plp_category_or_search`（类目/筛选列表）、`store_brand_hub`（店铺/品牌馆）；无法用 SERP 判定时可能为 `unspecified`。同时可看 `flags.preferPlpLayout` / `preferPdpLayout` / `preferStoreHubLayout`。
 
 ### 页面类型分类说明
 

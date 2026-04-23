@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 type AnalysisLayer = {
@@ -13,6 +13,44 @@ type AnalysisLayer = {
 
 type SerpSummaryBlock = { headline?: string; paragraphs?: string[]; topWinners?: Array<{ rank: number; domain: string; title: string }> };
 type SerpFeaturesBlock = { headline?: string; interpretation?: string; present?: Array<{ name: string; meaning: string }>; extraNotes?: string[] };
+type CompetitorContentInsights = {
+  headline?: string;
+  bullets?: string[];
+  fetchedCount?: number;
+  failedCount?: number;
+  avgWordCount?: number;
+  perPageNotes?: Array<
+    | {
+        rank: number;
+        domain: string;
+        title: string;
+        ok: true;
+        wordCount: number;
+        headingCount: number;
+        hasFAQ: boolean;
+        hasTable: boolean;
+        hasVideo: boolean;
+        outlinePreview: string;
+        howTheyWrite?: string;
+        yourDifferentiation?: string;
+      }
+    | { rank: number; domain: string; title: string; ok: false; error: string; fallbackStrategy?: string }
+  >;
+};
+
+type SystematicBlock = {
+  overview?: string;
+  riskPoints?: string[];
+  nextStepFocus?: string[];
+  whyThisPattern?: string[];
+  whatToWatch?: string[];
+  whyPrimary?: string[];
+  whenToPivot?: string[];
+  executiveSummary?: string;
+  contentBattlePlan?: string[];
+  rationale?: string;
+  tradeoffs?: string[];
+};
 
 function Layer1Report({ data }: { data: Record<string, unknown> }) {
   const organicCount = (data.organicCount as number) ?? 0;
@@ -26,6 +64,8 @@ function Layer1Report({ data }: { data: Record<string, unknown> }) {
   const activeSignals = signals ? Object.entries(signals).filter(([, v]) => v).map(([k]) => k) : [];
   const serpSummary = data.serpSummary as SerpSummaryBlock | undefined;
   const serpFeatures = data.serpFeaturesSummary as SerpFeaturesBlock | undefined;
+  const contentInsights = data.competitorContentInsights as CompetitorContentInsights | undefined;
+  const sys1 = data.systematicAnalysis as SystematicBlock | undefined;
 
   return (
     <div className="space-y-6">
@@ -63,6 +103,76 @@ function Layer1Report({ data }: { data: Record<string, unknown> }) {
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-violet-800">
               {serpFeatures.extraNotes.map((n, i) => <li key={i}>{n}</li>)}
             </ul>
+          )}
+        </div>
+      )}
+      {sys1?.overview && (
+        <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4">
+          <div className="text-sm font-semibold text-zinc-900">AI 系统性解读（第 1 步）</div>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-800">{sys1.overview}</p>
+          {sys1.riskPoints && sys1.riskPoints.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-amber-800">风险点</div>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-900/90">{sys1.riskPoints.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          )}
+          {sys1.nextStepFocus && sys1.nextStepFocus.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-emerald-800">下一步关注点</div>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-emerald-900/90">{sys1.nextStepFocus.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          )}
+        </div>
+      )}
+      {contentInsights && (contentInsights.bullets?.length || contentInsights.perPageNotes?.length) && (
+        <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-4">
+          <div className="text-sm font-semibold text-sky-950">{contentInsights.headline ?? "竞品落地页结构"}</div>
+          {(contentInsights.fetchedCount !== undefined || contentInsights.failedCount !== undefined) && (
+            <p className="mt-1 text-xs text-sky-800/90">
+              成功抓取结构约 <strong>{contentInsights.fetchedCount ?? 0}</strong> 条
+              {typeof contentInsights.avgWordCount === "number" && contentInsights.fetchedCount ? (
+                <>，估算正文平均约 <strong>{contentInsights.avgWordCount}</strong> 词（英文按空格分词，中文页仅供参考）</>
+              ) : null}
+              {(contentInsights.failedCount ?? 0) > 0 ? <>；失败或未拉取 <strong>{contentInsights.failedCount}</strong> 条（多为反爬或超时）。</> : "。"}
+            </p>
+          )}
+          {contentInsights.bullets && contentInsights.bullets.length > 0 && (
+            <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-sky-900">
+              {contentInsights.bullets.map((b, i) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          )}
+          {contentInsights.perPageNotes && contentInsights.perPageNotes.length > 0 && (
+            <details className="mt-3 rounded-lg border border-sky-200/80 bg-white/70">
+              <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-sky-900">逐条结果：标题大纲与形态信号</summary>
+              <div className="space-y-3 border-t border-sky-100 px-3 py-3 text-xs text-sky-900">
+                {contentInsights.perPageNotes.map((row) => (
+                  <div key={row.rank} className="border-b border-sky-100 pb-2 last:border-0 last:pb-0">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="rounded bg-sky-200/90 px-1.5 py-0.5 font-semibold text-sky-950">#{row.rank}</span>
+                      <span className="font-medium text-zinc-900">{row.domain}</span>
+                    </div>
+                    <div className="mt-0.5 text-zinc-700">{row.title}</div>
+                    {row.ok ? (
+                      <div className="mt-1 space-y-1 text-sky-900/90">
+                        <div>词数约 {row.wordCount} · 标题条数 {row.headingCount} · FAQ {row.hasFAQ ? "有" : "无"} · 表 {row.hasTable ? "有" : "无"} · 视频 {row.hasVideo ? "有" : "无"}</div>
+                        <div className="text-zinc-600">大纲：{row.outlinePreview}</div>
+                        {row.howTheyWrite && <div className="text-zinc-800"><span className="font-semibold text-sky-950">对方写法：</span>{row.howTheyWrite}</div>}
+                        {row.yourDifferentiation && <div className="text-zinc-800"><span className="font-semibold text-sky-950">你可差异化：</span>{row.yourDifferentiation}</div>}
+                      </div>
+                    ) : (
+                      <div className="mt-1 space-y-1">
+                        <div className="text-amber-800">抓取：{row.error}</div>
+                        {"fallbackStrategy" in row && row.fallbackStrategy && (
+                          <div className="text-sm text-zinc-700"><span className="font-semibold">无正文时策略：</span>{row.fallbackStrategy}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
         </div>
       )}
@@ -140,9 +250,28 @@ function Layer2Report({ data }: { data: Record<string, unknown> }) {
   const warnings = viability?.warnings ?? [];
   const blockers = viability?.blockers ?? [];
   const patternLabel = queryPattern ? (queryPatternCn[queryPattern] ?? queryPattern) : "未知";
+  const sys2 = data.systematicAnalysis as SystematicBlock | undefined;
 
   return (
     <div className="space-y-6">
+      {sys2?.overview && (
+        <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4">
+          <div className="text-sm font-semibold text-zinc-900">AI 系统性解读（第 2 步）</div>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-800">{sys2.overview}</p>
+          {sys2.whyThisPattern && sys2.whyThisPattern.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-indigo-800">为何形成这种 SERP 格局</div>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-zinc-800">{sys2.whyThisPattern.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          )}
+          {sys2.whatToWatch && sys2.whatToWatch.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-amber-800">执行时要盯紧</div>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-900/90">{sys2.whatToWatch.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          )}
+        </div>
+      )}
       <div className="rounded-xl border-l-4 border-indigo-500 bg-indigo-50 px-4 py-3">
         <div className="text-sm font-semibold text-indigo-900">关键发现</div>
         <div className="mt-1 text-sm text-indigo-800 space-y-1">
@@ -186,13 +315,144 @@ function Layer2Report({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+/** 与 API 枚举一致，用于无模型 directive 时的兜底展示 */
+const primaryAssetPlainZh: Record<string, string> = {
+  "Article / Guide": "深度文章 / 指南页（分章节讲清楚一件事，可配目录与 FAQ）",
+  "Product Page": "电商「商品向」落地页（可能是类目/筛选列表、单品商详或店铺馆——请看下方细分形态）",
+  "Collection / Bestlist": "清单 / 合集页（多选项对比、排行或「Top N」结构）",
+  "Comparison Page": "对比页（A vs B、维度表、结论与适用人群）",
+  "QA / FAQ Page": "问答 / FAQ 页（短答优先，可抢精选摘要与长尾问句）",
+  "Tool / Calculator": "工具 / 计算器页（交互为主，辅以说明与示例）",
+};
+
+type ContentFormDirective = {
+  headline?: string;
+  doThis?: string;
+  notThisFirst?: string;
+  pairWith?: string[];
+};
+
+const canonicalSurfaceZh: Record<string, string> = {
+  article_longform: "深度长文 / 教程",
+  listicle_collection: "清单 / 合集 / 导购排行",
+  comparison_page: "对比页（vs / 维度表）",
+  pdp_single_sku: "单品商详（PDP）",
+  plp_category_or_search: "类目或筛选列表（PLP，多商品卡片）",
+  store_brand_hub: "店铺 / 品牌馆（多 SKU 聚合）",
+  qa_faq_hub: "问答 / FAQ 聚合",
+  tool_interactive: "工具 / 计算器交互页",
+  unspecified: "未细分（需结合 URL 再判）",
+};
+
 function Layer3Report({ data }: { data: Record<string, unknown> }) {
   const decision = data.decision as { primaryAsset: string; supportAssets: string[]; primaryScore: number } | undefined;
   const scoring = data.assetFitScoring as Array<{ asset: string; score: number }> | undefined;
-  const alignment = data.pageTypeAlignment as { primaryAsset: string; dominantSerppageType: string; aligned: boolean } | undefined;
+  const alignment = data.pageTypeAlignment as { primaryAsset: string; dominantSerppageType: string; aligned: boolean; alignmentNote?: string } | undefined;
+  const sys3 = data.systematicAnalysis as SystematicBlock | undefined;
+  const directive = data.contentFormDirective as ContentFormDirective | undefined;
+  const routing = data.contentFormRouting as {
+    canonicalSurface?: string;
+    contentShapeBucket?: string;
+    operatorHint?: string;
+    flags?: Record<string, boolean>;
+  } | undefined;
+  const granularity = data.contentGranularity as {
+    canonicalSurface?: string;
+    explainForOperator?: string;
+    productIfApplicable?: {
+      isSingleSkuDetail?: boolean;
+      isCategoryListing?: boolean;
+      isStoreOrBrandHub?: boolean;
+    } | null;
+  } | undefined;
+  const primary = decision?.primaryAsset;
+  const fallbackLine =
+    primary != null
+      ? `建议优先按「${primaryAssetPlainZh[primary] ?? primary}」规划你的主落地页；辅助可考虑：${(decision?.supportAssets ?? []).join("、") || "无"}。`
+      : null;
 
   return (
     <div className="space-y-6">
+      {(directive?.headline || directive?.doThis || primary) && (
+        <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 px-4 py-4 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-emerald-900/80">结论 · 你要做什么内容形态</div>
+          <div className="mt-2 text-base font-bold leading-snug text-emerald-950">
+            {directive?.headline ?? (primary ? `你要做的内容形态：${primaryAssetPlainZh[primary] ?? primary}` : "内容形态结论")}
+          </div>
+          {(directive?.doThis || fallbackLine) && (
+            <p className="mt-3 text-sm leading-relaxed text-emerald-950/95 whitespace-pre-wrap">{directive?.doThis ?? fallbackLine}</p>
+          )}
+          {directive?.notThisFirst && (
+            <p className="mt-3 text-sm text-amber-900/95 border-t border-emerald-200/80 pt-3"><span className="font-semibold text-amber-950">暂不要优先做：</span>{directive.notThisFirst}</p>
+          )}
+          {directive?.pairWith && directive.pairWith.length > 0 && (
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-emerald-900">
+              {directive.pairWith.map((x, i) => (
+                <li key={i}><span className="font-semibold">可搭配：</span>{x}</li>
+              ))}
+            </ul>
+          )}
+          {primary && (
+            <div className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-xs text-emerald-900/90">
+              系统枚举：<code className="rounded bg-emerald-100/80 px-1.5 py-0.5">{primary}</code>
+              {decision?.primaryScore != null ? <> · 适配分 <strong>{decision.primaryScore}</strong>/100</> : null}
+            </div>
+          )}
+          {(routing?.canonicalSurface || routing?.contentShapeBucket) && (
+            <div className="mt-3 rounded-lg border border-emerald-200/90 bg-white px-3 py-2 text-xs text-emerald-950">
+              <div className="font-semibold text-emerald-900">程序化路由 · 细分落地形态</div>
+              <div className="mt-1">
+                <code className="rounded bg-zinc-100 px-1.5 py-0.5">{routing?.canonicalSurface ?? "—"}</code>
+                <span className="ml-2 text-emerald-900/90">
+                  {canonicalSurfaceZh[routing?.canonicalSurface ?? ""] ?? routing?.canonicalSurface ?? ""}
+                </span>
+              </div>
+              {routing?.contentShapeBucket && (
+                <div className="mt-1 text-emerald-800/90">
+                  粗桶 <code className="rounded bg-zinc-100 px-1">{routing.contentShapeBucket}</code>
+                  {routing.flags && (
+                    <span className="ml-2">
+                      PLP倾向 {routing.flags.preferPlpLayout ? "是" : "否"} · PDP倾向 {routing.flags.preferPdpLayout ? "是" : "否"}
+                      · 店铺馆 {routing.flags.preferStoreHubLayout ? "是" : "否"}
+                    </span>
+                  )}
+                </div>
+              )}
+              {(routing?.operatorHint || granularity?.explainForOperator) && (
+                <p className="mt-2 text-emerald-900/95">{routing?.operatorHint ?? granularity?.explainForOperator}</p>
+              )}
+              {granularity?.productIfApplicable && primary === "Product Page" && (
+                <p className="mt-1 text-zinc-600">
+                  模型标注：单品商详 {granularity.productIfApplicable.isSingleSkuDetail ? "是" : "否"}
+                  {" · "}类目列表 {granularity.productIfApplicable.isCategoryListing ? "是" : "否"}
+                  {" · "}店铺馆 {granularity.productIfApplicable.isStoreOrBrandHub ? "是" : "否"}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {sys3?.overview && (
+        <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4">
+          <div className="text-sm font-semibold text-zinc-900">AI 系统性解读（第 3 步）</div>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-800">{sys3.overview}</p>
+          {alignment?.alignmentNote && (
+            <p className="mt-2 text-sm text-indigo-900/90"><span className="font-semibold">对齐说明：</span>{alignment.alignmentNote}</p>
+          )}
+          {sys3.whyPrimary && sys3.whyPrimary.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-indigo-800">为何选该主形态</div>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-zinc-800">{sys3.whyPrimary.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          )}
+          {sys3.whenToPivot && sys3.whenToPivot.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs font-semibold text-amber-800">何时应考虑换形态</div>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-900/90">{sys3.whenToPivot.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          )}
+        </div>
+      )}
       <div className="rounded-xl border-l-4 border-indigo-500 bg-indigo-50 px-4 py-3">
         <div className="text-sm font-semibold text-indigo-900">关键发现</div>
         <div className="mt-1 text-sm text-indigo-800 space-y-1">
@@ -256,10 +516,20 @@ type Playbook = {
 function Layer4Report({ data }: { data: Record<string, unknown> }) {
   const strategist = data.primaryStrategist as { asset: string; mustCover?: string[]; structure?: string[]; seoSignals?: string[]; targetWordCount?: number; h1?: string } | undefined;
   const playbook = data.playbook as Playbook | undefined;
+  const sys4 = data.systematicAnalysis as SystematicBlock | undefined;
   if (!strategist) return <div className="text-sm text-zinc-400">暂无策略数据</div>;
 
   return (
     <div className="space-y-6">
+      {(sys4?.executiveSummary || (sys4?.contentBattlePlan && sys4.contentBattlePlan.length > 0)) && (
+        <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4">
+          <div className="text-sm font-semibold text-zinc-900">AI 系统性解读（第 4 步）</div>
+          {sys4.executiveSummary && <p className="mt-2 text-sm leading-relaxed text-zinc-800">{sys4.executiveSummary}</p>}
+          {sys4.contentBattlePlan && sys4.contentBattlePlan.length > 0 && (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-800">{sys4.contentBattlePlan.map((x, i) => <li key={i}>{x}</li>)}</ul>
+          )}
+        </div>
+      )}
       {playbook && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-4">
           <div className="text-sm font-semibold text-emerald-950">可执行打法（Playbook）</div>
@@ -367,7 +637,7 @@ function Layer5Report({ data }: { data: Record<string, unknown> }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="text-sm font-semibold text-sky-950">最终交付：完整 JSON</div>
-              <div className="mt-1 text-xs text-sky-800">已包含：SERP 总结、特色板块总结、打法手册、以及 controlSignals（必写/缺口/结构等）</div>
+              <div className="mt-1 text-xs text-sky-800">已包含：SERP 总结、特色板块、`contentFormDirective`、`contentGranularity`（PDP/PLP 等细分）、`contentFormRouting`、打法手册、controlSignals 等</div>
             </div>
             <button type="button" onClick={copyFinal}
               className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700">
@@ -469,15 +739,26 @@ export function StrategyV2Client() {
   const [language, setLanguage] = useState("zh-cn");
   const [loading, setLoading] = useState(false);
   const [layers, setLayers] = useState<AnalysisLayer[]>([
-    { id: "layer1", name: "第1步 · 抓取并读懂搜索结果", description: "看 Google 这一页真实长什么样：前几名是谁、有没有购物/PAA 等特色块。", status: "pending", data: {} },
-    { id: "layer2", name: "第2步 · 判断值不值得做", description: "识别大家是什么页面类型、用户意图是否统一，并给出可行性评分与风险提示", status: "pending", data: {} },
-    { id: "layer3", name: "第3步 · 选对你要做的页面形态", description: "把「文章 / 清单 / 产品页 / 对比页 / 问答页」等形态打分，选出最适合的主形态", status: "pending", data: {} },
-    { id: "layer4", name: "第4步 · 产出打法与内容大纲", description: "把主形态落成：必写模块、章节结构、SEO 要点，并给出可执行打法（缺什么/风险/你能做什么）", status: "pending", data: {} },
-    { id: "layer5", name: "第5步 · 生成写稿控制指令（JSON）", description: "汇总 SERP 总结 + 打法 + 必写/缺口等控制信号，一键复制给下一步内容生成使用", status: "pending", data: {} },
+    { id: "layer1", name: "第1步 · 抓取事实 + AI 读懂 SERP", description: "程序只负责拉 SERP 与落地页结构数据；本步结论（总结、特色块解读、竞品写法）由大模型生成。", status: "pending", data: {} },
+    { id: "layer2", name: "第2步 · AI 判断意图与可行性", description: "页面类型分布、查询模式、意图是否分裂、可行性评分与警示，均由大模型基于上一步事实输出。", status: "pending", data: {} },
+    { id: "layer3", name: "第3步 · AI 选择主内容形态", description: "各资产形态适配分、主推/辅助形态、与 SERP 是否对齐，由大模型解释并给出结构化结果。", status: "pending", data: {} },
+    { id: "layer4", name: "第4步 · AI 产出打法与大纲", description: "必写点、章节结构、SEO 要点、Playbook（打法/缺口/风险/行动）由大模型统一生成。", status: "pending", data: {} },
+    { id: "layer5", name: "第5步 · AI 生成写稿控制信号", description: "mustWrite、gaps、标题建议等下游控制字段由大模型综合前四层输出；可一键复制 JSON。", status: "pending", data: {} },
   ]);
   const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
   const [showJson, setShowJson] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [loadingSec, setLoadingSec] = useState(0);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingSec(0);
+      return;
+    }
+    setLoadingSec(0);
+    const id = setInterval(() => setLoadingSec((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [loading]);
 
   const locationOptions = [
     { value: "2156", label: "中国" }, { value: "2840", label: "美国" },
@@ -494,33 +775,12 @@ export function StrategyV2Client() {
     const kw = keyword.trim();
     const layerIds = ["layer1", "layer2", "layer3", "layer4", "layer5"] as const;
 
-    function packData(id: (typeof layerIds)[number], bundle: Record<string, Record<string, unknown>>) {
+    type LayerId = (typeof layerIds)[number];
+    const acc: Partial<Record<LayerId, Record<string, unknown>>> = {};
+
+    function packData(id: LayerId, bundle: Partial<Record<LayerId, Record<string, unknown>>>) {
       const raw = bundle[id] ?? {};
       return id === "layer1" ? { ...raw, _keyword: kw } : raw;
-    }
-
-    /** 接口一次返回全部数据后，按顺序：上一步完成 → 下一步进行中 → 下一步完成 */
-    async function revealStepsSequentially(bundle: Record<string, Record<string, unknown>>) {
-      const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-      for (let i = 0; i < layerIds.length; i++) {
-        if (i > 0) {
-          setLayers((prev) =>
-            prev.map((l, idx) => {
-              if (idx < i) return { ...l, status: "completed", data: packData(layerIds[idx], bundle) };
-              if (idx === i) return { ...l, status: "active", data: {} };
-              return { ...l, status: "pending", data: {} };
-            }),
-          );
-          await sleep(400);
-        }
-        setLayers((prev) =>
-          prev.map((l, idx) => {
-            if (idx <= i) return { ...l, status: "completed", data: packData(layerIds[idx], bundle) };
-            return { ...l, status: "pending", data: {} };
-          }),
-        );
-        if (i < layerIds.length - 1) await sleep(320);
-      }
     }
 
     setLoading(true);
@@ -536,25 +796,64 @@ export function StrategyV2Client() {
     );
 
     try {
-      const res = await fetch("/api/strategy-v2/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ keyword: kw, location, language, layer: "all" }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error((json as { error?: string }).error || "分析失败");
-      }
-      const json = (await res.json()) as {
-        mode?: string;
-        layers?: Record<string, Record<string, unknown>>;
-      };
-      if (!json.layers) throw new Error("返回数据格式错误");
+      for (let i = 0; i < layerIds.length; i++) {
+        const stepId = layerIds[i];
+        setLayers((prev) =>
+          prev.map((l, idx) => {
+            if (idx < i) return { ...l, status: "completed", data: packData(layerIds[idx], acc) };
+            if (idx === i) return { ...l, status: "active", data: {} };
+            return { ...l, status: "pending", data: {} };
+          }),
+        );
 
-      await revealStepsSequentially(json.layers);
+        const previousLayers =
+          i === 0
+            ? undefined
+            : {
+                ...(acc.layer1 ? { layer1: acc.layer1 } : {}),
+                ...(acc.layer2 ? { layer2: acc.layer2 } : {}),
+                ...(acc.layer3 ? { layer3: acc.layer3 } : {}),
+                ...(acc.layer4 ? { layer4: acc.layer4 } : {}),
+              };
+
+        const res = await fetch("/api/strategy-v2/analyze", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            keyword: kw,
+            location,
+            language,
+            layer: stepId,
+            ...(previousLayers && Object.keys(previousLayers).length > 0 ? { previousLayers } : {}),
+          }),
+          signal: AbortSignal.timeout(240_000),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error((j as { error?: string }).error || `第 ${i + 1} 步失败`);
+        }
+        const json = (await res.json()) as { data?: Record<string, unknown> };
+        if (!json.data) throw new Error(`第 ${i + 1} 步返回数据为空`);
+        acc[stepId] = json.data;
+
+        setLayers((prev) =>
+          prev.map((l, idx) => {
+            if (idx <= i) return { ...l, status: "completed", data: packData(layerIds[idx], acc) };
+            if (idx === i + 1 && i + 1 < layerIds.length) return { ...l, status: "active", data: {} };
+            return { ...l, status: "pending", data: {} };
+          }),
+        );
+      }
+
       setExpandedLayers(Object.fromEntries(layerIds.map((id) => [id, true])));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "未知错误");
+      const msg =
+        e instanceof Error
+          ? e.name === "TimeoutError" || e.message.includes("aborted")
+            ? "单步请求超时（已超过 4 分钟）。可换关键词/市场后重试。"
+            : e.message
+          : "未知错误";
+      setError(msg);
       setLayers((p) => p.map((l) => (l.status === "active" ? { ...l, status: "error" as const, data: {} } : l)));
     } finally {
       setLoading(false);
@@ -565,7 +864,7 @@ export function StrategyV2Client() {
     <main className="flex-1 p-6">
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="text-sm font-semibold text-zinc-900">分层策略分析（给写稿流水线用）</div>
-        <div className="mt-1 text-xs text-zinc-500">从「看懂 SERP」到「可复制 JSON」五步走完；后台一次算完并只请求一轮外部数据，结果返回后界面会按顺序「完成上一步 → 再开始下一步」展示。每层都有：关键发现 → 对下一步的影响 → 建议</div>
+        <div className="mt-1 text-xs text-zinc-500">从「看懂 SERP」到「可复制 JSON」五步走完。<strong className="text-zinc-700">当前为五步串行请求</strong>：每步接口返回后，该步会<strong className="text-zinc-700">立刻打勾并展示结果</strong>，再进入下一步；前几步结论会通过 <code className="rounded bg-zinc-100 px-1">previousLayers</code> 传给服务器，<strong className="text-zinc-700">不会重复拉 SERP / 重复抓落地页</strong>。整段仍可能需 1～3 分钟。每层都有：关键发现 → 对下一步的影响 → 建议</div>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end">
           <div className="flex-1 space-y-2">
             <label className="text-sm text-zinc-700">关键词</label>
@@ -589,6 +888,13 @@ export function StrategyV2Client() {
           </div>
           <Button onClick={onAnalyze} disabled={!keyword.trim() || loading}>{loading ? "分析中..." : "开始分析"}</Button>
         </div>
+        {loading && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+            <span className="font-semibold">正在逐步分析</span>
+            ：每步完成后会马上更新对应卡片。
+            <span className="ml-1 tabular-nums text-amber-900">已进行约 {loadingSec} 秒</span>
+          </div>
+        )}
       </section>
       {error && (
         <section className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
