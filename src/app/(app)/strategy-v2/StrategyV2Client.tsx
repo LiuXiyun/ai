@@ -78,19 +78,19 @@ function Layer1Report({ data }: { data: Record<string, unknown> }) {
       <div className="rounded-xl border-l-4 border-amber-500 bg-amber-50 px-4 py-3">
         <div className="text-sm font-semibold text-amber-900">对下一步的影响</div>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">
-          {hasShopping && <li>存在购物结果 → 下一步「选对页面形态」会提高「产品详情页」的推荐权重</li>}
-          {hasPAA && <li>存在 PAA 问题 → 后面的「打法大纲 / 控制指令」会更强调 FAQ 与短答结构</li>}
-          {activeSignals.includes("featuredSnippet") && <li>存在精选摘要 → 内容需要针对 featured snippet 优化</li>}
-          {activeSignals.includes("peopleAlsoAsk") && <li>存在 PAA → 内容必须包含 FAQ 模块</li>}
-          {activeSignals.length === 0 && <li>无明显 SERP 特色 → 竞争相对平缓</li>}
+          {hasShopping && <li key="shop">存在购物结果 → 下一步「选对页面形态」会提高「产品详情页」的推荐权重</li>}
+          {hasPAA && <li key="paa">存在 PAA 问题 → 后面的「打法大纲 / 控制指令」会更强调 FAQ 与短答结构</li>}
+          {activeSignals.includes("featuredSnippet") && <li key="fs">存在精选摘要 → 内容需要针对 featured snippet 优化</li>}
+          {activeSignals.includes("peopleAlsoAsk") && <li key="paa2">存在 PAA → 内容必须包含 FAQ 模块</li>}
+          {activeSignals.length === 0 && <li key="plain">无明显 SERP 特色 → 竞争相对平缓</li>}
         </ul>
       </div>
       <div className="rounded-xl border-l-4 border-green-500 bg-green-50 px-4 py-3">
         <div className="text-sm font-semibold text-green-900">建议</div>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-green-800">
-          {paa && paa.length > 0 && <li>记录 PAA 问题，后续内容必须逐一回答</li>}
-          {organic && organic.length > 0 && <li>关注 TOP 3 竞争对手，后续需要做差异化</li>}
-          <li>继续下一步：判断这个词值不值得投入、以及竞争难度</li>
+          {paa && paa.length > 0 && <li key="paa-rec">记录 PAA 问题，后续内容必须逐一回答</li>}
+          {organic && organic.length > 0 && <li key="top3">关注 TOP 3 竞争对手，后续需要做差异化</li>}
+          <li key="next">继续下一步：判断这个词值不值得投入、以及竞争难度</li>
         </ul>
       </div>
       {paa && paa.length > 0 && (
@@ -569,42 +569,44 @@ export function StrategyV2Client() {
           const hasData = Object.keys(layer.data).length > 0;
           return (
             <section key={layer.id} className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-              <button type="button" onClick={() => toggleLayer(layer.id)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-zinc-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  {layer.status === "completed" ? (
-                    <svg className="h-5 w-5 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  ) : layer.status === "active" ? (
-                    <svg className="h-5 w-5 text-indigo-500 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : layer.status === "error" ? (
-                    <svg className="h-5 w-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <div className="h-5 w-5 shrink-0 rounded-full border-2 border-zinc-300" />
-                  )}
-                  <div>
-                    <div className={`text-sm font-semibold ${layer.status === "completed" ? "text-zinc-900" : layer.status === "active" ? "text-indigo-600" : layer.status === "error" ? "text-red-600" : "text-zinc-400"}`}>{layer.name}</div>
-                    <div className="text-xs text-zinc-500">{layer.description}</div>
+              <div className="flex w-full items-stretch">
+                <button type="button" onClick={() => toggleLayer(layer.id)}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3 px-5 py-4 text-left hover:bg-zinc-50 transition-colors">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {layer.status === "completed" ? (
+                      <svg className="h-5 w-5 shrink-0 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    ) : layer.status === "active" ? (
+                      <svg className="h-5 w-5 shrink-0 animate-spin text-indigo-500" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : layer.status === "error" ? (
+                      <svg className="h-5 w-5 shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <div className="h-5 w-5 shrink-0 rounded-full border-2 border-zinc-300" />
+                    )}
+                    <div className="min-w-0">
+                      <div className={`text-sm font-semibold ${layer.status === "completed" ? "text-zinc-900" : layer.status === "active" ? "text-indigo-600" : layer.status === "error" ? "text-red-600" : "text-zinc-400"}`}>{layer.name}</div>
+                      <div className="text-xs text-zinc-500">{layer.description}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {hasData && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleJson(layer.id); }}
+                  <svg className={`h-5 w-5 shrink-0 text-zinc-400 transition-transform ${expandedLayers[layer.id] ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {hasData && (
+                  <div className="flex shrink-0 items-center border-l border-zinc-100 bg-white px-2">
+                    <button type="button" onClick={() => toggleJson(layer.id)}
                       className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-50">
                       {showJson[layer.id] ? "报告" : "JSON"}
                     </button>
-                  )}
-                  <svg className={`h-5 w-5 text-zinc-400 transition-transform ${expandedLayers[layer.id] ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
+                  </div>
+                )}
+              </div>
               {expandedLayers[layer.id] && (
                 <div className="border-t border-zinc-200 px-5 py-4">
                   {hasData ? (
