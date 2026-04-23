@@ -1,14 +1,5 @@
-import { Topbar } from "@/components/layout/Topbar";
-import { ProductsClient } from "./ProductsClient";
+import { redirect } from "next/navigation";
 
 export default function ProductsPage() {
-  return (
-    <>
-      <Topbar title="Products" />
-      <main className="flex-1 p-6">
-        <ProductsClient />
-      </main>
-    </>
-  );
+  redirect("/strategy-v2");
 }
-
