@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/chat", label: "Chat" },
-  { href: "/strategy-v2", label: "分层策略分析" },
+  { href: "/chat", label: "Chat", icon: "💬" },
+  { href: "/strategy-v2", label: "分层策略分析", icon: "📊" },
 ] as const;
 
 export function Sidebar() {
@@ -39,7 +39,14 @@ export function Sidebar() {
             }`}
             title={item.label}
           >
-            {collapsed ? item.label.slice(0, 1) : item.label}
+            {collapsed ? (
+              <span className="text-base leading-none">{item.icon}</span>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-base leading-none">{item.icon}</span>
+                <span>{item.label}</span>
+              </span>
+            )}
           </Link>
         ))}
       </nav>

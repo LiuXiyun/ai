@@ -10,8 +10,6 @@ export type UnifiedAsset =
   | "collection_page"
   | "support_article";
 
-export type ConsumerProfile = "smart_content" | "dhgate_commerce";
-
 export type ViabilityAction = "proceed" | "expand" | "skip" | "proceed_with_low_evidence";
 
 export type OrganicInput = {

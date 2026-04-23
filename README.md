@@ -126,11 +126,10 @@ cp .env.example .env
 - **POST** `/api/strategy-v2/analyze`
 - **前置条件**：必须配置 **`OPENAI_API_KEY`**。未配置时返回 **400** 与说明文案（不做规则降级策略）。
 - **请求 JSON**：`keyword`（必填）、`location`、`language`、`layer`
-  - **`consumer_profile`**（可选）：`smart_content`（默认）或 `dhgate_commerce`。影响 **`finalBundle.unified_engine`** 里「Layer3 主资产 → 统一资产 ID」的映射（例如同一 `Collection / Bestlist` 在电商侧会落到 `collection_page`）及分支控制面默认值；**仅 Layer5 / `layer: "all"`** 会写入该字段；前几层可省略。
   - **`layer: "all"`**：服务端**单次**跑完五步，返回 `{ "mode": "all", "layers": { … } }`（适合脚本一次拿齐；**不**用于页面渐进展示）。
   - **`layer`: `layer1` … `layer5`**：只跑该层。页面默认用 **五步串行**：先 `layer1`，再带 **`previousLayers`**（已算好的 `layer1` / `layer1+2` …）请求 `layer2`…`layer5`，这样 **UI 可在每步返回后立即打勾**，且**不会重复** DataForSEO / 落地页抓取。
   - **`previousLayers`**（可选）：`{ layer1?, layer2?, layer3?, layer4? }`。请求 `layer3` 时应至少带 `layer1`+`layer2`（或都不带则服务端从头算，会重复拉数）。
-- **Layer5 返回**：`finalBundle` / `finalBundleJson` 合并 SERP 总结、特色板块、`competitorContentInsights`、**`contentFormDirective`（第 3 步明确：你要做什么样的内容形态）**、**`contentFormRouting`（机器可读：形态桶 + 布尔旗标，便于你方 `if/switch` 选模板）**、第 4 步 `playbook`、`controlSignals`（第 5 步大模型输出）、**`unified_engine`（程序拼装：可行性规则、竞品抽样、关键词桶、分资产 `branch_payload` + `field_roles`）**。`meta.consumerProfile` 与请求一致。**客观计数**（如平均标题长度、抓取成功条数）仍由程序从原始结果计算后写回，不属于「策略结论」。部分落地页 403/超时属正常现象，模型会在解读中说明。
+- **Layer5 返回**：`finalBundle` / `finalBundleJson` 合并 SERP 总结、特色板块、`competitorContentInsights`、**`contentFormDirective`（第 3 步明确：你要做什么样的内容形态）**、**`contentFormRouting`（机器可读：形态桶 + 布尔旗标，便于你方 `if/switch` 选模板）**、第 4 步 `playbook`、`controlSignals`（第 5 步大模型输出）、**`unified_engine`（程序拼装：可行性规则、竞品抽样、关键词桶、分资产 `branch_payload` + `field_roles`）**。**客观计数**（如平均标题长度、抓取成功条数）仍由程序从原始结果计算后写回，不属于「策略结论」。部分落地页 403/超时属正常现象，模型会在解读中说明。
 - **JSON Schema（校验 `unified_engine`）**：仓库内 `src/lib/strategy/unifiedEngine/schemas/unified-engine-root.schema.json`（总对象）、`branch-payload.schema.json`（`branch_payload` 子树，宽松 `additionalProperties`）。
 
 ##### 程序化匹配「列表 / 长文 / 对比…」

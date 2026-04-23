@@ -6,7 +6,6 @@
   "additionalProperties": true,
   "required": [
     "schema_version",
-    "consumer_profile",
     "keyword",
     "legacy",
     "unified_routing",
@@ -17,10 +16,6 @@
   ],
   "properties": {
     "schema_version": { "type": "string" },
-    "consumer_profile": {
-      "type": "string",
-      "enum": ["smart_content", "dhgate_commerce"]
-    },
     "keyword": { "type": "string", "minLength": 1 },
     "legacy": {
       "type": "object",

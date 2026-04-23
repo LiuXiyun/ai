@@ -1,6 +1,6 @@
-export type { ConsumerProfile, UnifiedAsset, ViabilityAction, OrganicInput } from "./types";
+export type { UnifiedAsset, ViabilityAction, OrganicInput } from "./types";
 export { mapLegacyToUnifiedAsset } from "./mapLegacyAsset";
-export { buildUnifiedEngineOutput, normalizeConsumerProfile } from "./buildUnifiedEngineOutput";
+export { buildUnifiedEngineOutput } from "./buildUnifiedEngineOutput";
 export { buildBranchPayload } from "./branchPayloads";
 export { computeViabilityEngine, countStrongDomains } from "./rules/viability";
 export { selectCompetitors } from "./rules/competitors";

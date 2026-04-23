@@ -755,7 +755,6 @@ export function StrategyV2Client() {
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("2156");
   const [language, setLanguage] = useState("zh-cn");
-  const [consumerProfile, setConsumerProfile] = useState<"smart_content" | "dhgate_commerce">("smart_content");
   const [loading, setLoading] = useState(false);
   const [layers, setLayers] = useState<AnalysisLayer[]>([
     { id: "layer1", name: "第1步 · 抓取事实 + AI 读懂 SERP", description: "程序只负责拉 SERP 与落地页结构数据；本步结论（总结、特色块解读、竞品写法）由大模型生成。", status: "pending", data: {} },
@@ -842,7 +841,6 @@ export function StrategyV2Client() {
             keyword: kw,
             location,
             language,
-            consumer_profile: consumerProfile,
             layer: stepId,
             ...(previousLayers && Object.keys(previousLayers).length > 0 ? { previousLayers } : {}),
           }),
@@ -905,15 +903,6 @@ export function StrategyV2Client() {
               value={language} onChange={(e) => setLanguage(e.target.value)}>
               {languageOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-          </div>
-          <div className="space-y-2 md:min-w-[11rem]">
-            <label className="text-sm text-zinc-700">消费画像</label>
-            <select className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              value={consumerProfile} onChange={(e) => setConsumerProfile(e.target.value as "smart_content" | "dhgate_commerce")}>
-              <option value="smart_content">通用内容站</option>
-              <option value="dhgate_commerce">DHgate 电商</option>
-            </select>
-            <div className="text-[11px] leading-snug text-zinc-500">仅影响最后一步 JSON 里的 <code className="rounded bg-zinc-100 px-0.5">unified_engine</code> 路由与分支默认值。</div>
           </div>
           <Button onClick={onAnalyze} disabled={!keyword.trim() || loading}>{loading ? "分析中..." : "开始分析"}</Button>
         </div>

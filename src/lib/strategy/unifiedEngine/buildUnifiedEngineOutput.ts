@@ -1,19 +1,12 @@
-import type { ConsumerProfile } from "./types";
 import { mapLegacyToUnifiedAsset } from "./mapLegacyAsset";
 import { countStrongDomains, computeViabilityEngine } from "./rules/viability";
 import { selectCompetitors } from "./rules/competitors";
 import { buildKeywordBuckets } from "./rules/keywordBuckets";
 import { buildBranchPayload } from "./branchPayloads";
 
-export function normalizeConsumerProfile(v: unknown): ConsumerProfile {
-  if (v === "dhgate_commerce") return "dhgate_commerce";
-  return "smart_content";
-}
-
 /** 在 Layer5 完成后组装：统一路由 + 规则引擎 + 分资产生成指令（供下游严格 JSON 消费） */
 export function buildUnifiedEngineOutput(params: {
   keyword: string;
-  consumerProfile: ConsumerProfile;
   layer1: Record<string, unknown>;
   layer2: Record<string, unknown>;
   layer3: Record<string, unknown>;
@@ -21,7 +14,6 @@ export function buildUnifiedEngineOutput(params: {
   controlSignals: Record<string, unknown>;
 }): Record<string, unknown> {
   const keyword = params.keyword.trim();
-  const cp = params.consumerProfile;
   const primaryAsset =
     (params.layer3?.decision as { primaryAsset?: string } | undefined)?.primaryAsset ?? "Article / Guide";
   const gran = params.layer3?.contentGranularity as { canonicalSurface?: string } | undefined;
@@ -29,7 +21,6 @@ export function buildUnifiedEngineOutput(params: {
   const mapped = mapLegacyToUnifiedAsset({
     legacyPrimary: primaryAsset,
     canonicalSurface,
-    consumerProfile: cp,
   });
 
   const organicRows =
@@ -88,7 +79,6 @@ export function buildUnifiedEngineOutput(params: {
 
   return {
     schema_version: "2026-04-23",
-    consumer_profile: cp,
     keyword,
     legacy: { primary_asset: primaryAsset, canonical_surface: canonicalSurface || null },
     unified_routing: {
