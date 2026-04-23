@@ -835,7 +835,7 @@ async function generateStrategyWithGPT(params: {
   }).join("\n");
 
   const pageTypeSummary = pageTypeDistribution.map(p =>
-    `${p.type}: ${p.count}个 (${p.percentage}%)`
+    `${p.type}: ${p.percentage}%`
   ).join("\n");
 
   const systemPrompt = `你是一个"生成控制信号"输出引擎，不是内容策划师。

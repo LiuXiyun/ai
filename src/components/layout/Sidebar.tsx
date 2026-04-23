@@ -9,6 +9,7 @@ const navItems = [
   { href: "/analytics", label: "Analytics" },
   { href: "/site", label: "Site" },
   { href: "/strategy", label: "竞争策略分析" },
+  { href: "/strategy-v2", label: "分层策略分析" },
 ] as const;
 
 export function Sidebar() {

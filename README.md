@@ -56,6 +56,7 @@ npm run dev
 - `/publish`：选择内容 → 选择平台 → 发布（MVP 先做"记录发布状态"）
 - `/analytics`：曝光统计（MVP 先模拟；后续可接真实监控）
 - `/strategy`：竞争策略分析 → 输入关键词 → Google SERP 分析 → 页面策略建议
+- `/strategy-v2`：**分层策略分析（推荐）** → 五步流水线：读懂 SERP → 评估可行性 → 选页面形态 → 产出打法大纲 → **一键复制「SERP 总结 + 特色板块 + 打法手册 + 控制指令」完整 JSON**（给下游内容生成当输入）
 
 ## 数据模型（MVP）
 
@@ -118,6 +119,12 @@ cp .env.example .env
 
 - **GET** `/api/strategy/history`
 - **返回 JSON**：`{ "items": [{ id, keyword, status, createdAt }] }`
+
+#### 分层策略（V2）
+
+- **POST** `/api/strategy-v2/analyze`
+- **请求 JSON**：`keyword`（必填）、`location`、`language`、`layer`（`layer1` … `layer5`）
+- **Layer5 返回**：除 `finalStrategy` 外，还有 `finalBundle` / `finalBundleJson`：**已合并 SERP 人话总结、特色板块总结、打法手册（缺什么/风险/你能做什么）、以及 `controlSignals`**，便于整条粘贴到内容生成流程。
 
 ### 页面类型分类说明
 

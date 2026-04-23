@@ -160,7 +160,7 @@ export function StrategyClient() {
   /**
    * Build crawl sub-steps from real competitor data
    */
-  function buildCrawlSubSteps(competitors: typeof result.competitors): Array<{ label: string; status: "pending" | "active" | "completed" | "error"; domain: string }> {
+  function buildCrawlSubSteps(competitors: AnalysisResult["competitors"]): Array<{ label: string; status: "pending" | "active" | "completed" | "error"; domain: string }> {
     const crawled = competitors.filter((c) => c.contentSummary);
     const notCrawled = competitors.filter((c) => !c.contentSummary);
     const subSteps: Array<{ label: string; status: "pending" | "active" | "completed" | "error"; domain: string }> = [];
